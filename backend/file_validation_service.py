@@ -1,7 +1,6 @@
+import mimetypes
 from detector import scan_image, scan_video
 from attrClassifier import MediaAnalyzer
-import sys, mimetypes
-from explainability import ExplainabilityEngine
 
 def detect_file_type(path):
     mime_type, _ = mimetypes.guess_type(path)
@@ -12,33 +11,17 @@ def detect_file_type(path):
             return "video"
     return "unknown"
 
-def main():
-    if len(sys.argv) < 2:
-        print("No file provided")
-        return
-
-    file_path = sys.argv[1]
+def get_results(file_path):
     file_type = detect_file_type(file_path)
-
     if file_type == "unknown":
         return ValueError("Unsupported file type")
-    
-    ai_scan_result = None
-
     analyzer = MediaAnalyzer()
-
-    explainer = ExplainabilityEngine()
-
     if file_type == "image":
         ai_scan_result = scan_image(file_path)
-        analysis_result =  analyzer._analyze_image(file_path)
-        briefOverview =  explainer.explain_overall_analysis(analysis_result)
+        analysis_result = analyzer.analyze_image(file_path)
     elif file_type == "video":
         ai_scan_result = scan_video(file_path)
-        analysis_result =  analyzer._analyze_video(file_path)
-        briefOverview = explainer.explain_overall_analysis(analysis_result)
+        analysis_result = analyzer.analyze_video(file_path)
 
-    print("Result:", ai_scan_result)
-    print("Analysis:", analysis_result)
+    return ai_scan_result, analysis_result
 
-main()

@@ -1,27 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TrueView</title>
-    <meta name="description" content="TrueView helps you see the truth behind every media with advanced verification tools" />
-    <meta name="author" content="TrueView" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrueView Analysis</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="notificationPopup" class="notification-popup" onclick="scrollToMetrics()" >
+        Detailed Metrics Ready for Review ↓
+    </div>
 
-    <meta property="og:title" content="TrueView" />
-    <meta property="og:description" content="TrueView helps you see the truth behind every media with advanced verification tools" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <div class="container">
+        <div class="header-row">
+            <h1>TrueView Deepfake Detector</h1>
+            <button id="headerNewAnalysisBtn" class="header-btn" onclick="location.reload()">ANALYZE NEW FILE</button>
+        </div>
+        
+        <div id="uploadSection" class="upload-section">
+            <div class="file-input-wrapper">
+                <label for="fileInput" class="custom-file-btn">CHOOSE FILE</label>
+                <span id="fileName" style="font-family: 'Courier New', monospace; font-weight: 700;">NO FILE CHOSEN</span>
+                <input type="file" id="fileInput" accept="image/*,video/*" onchange="handleFileSelect()">
+            </div>
+            
+            <div class="preview-row">
+                <img id="imagePreview" class="media-preview" />
+                <video id="videoPreview" class="media-preview" controls></video>
+                <button id="analyzeBtn" onclick="handleAnalysis()" style="display: none; margin-top: 0;">ANALYZE MEDIA</button>
+            </div>
+        </div>
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-  </head>
-
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+        <div id="resultsSection" class="results-section">
+            <div class="results-split">
+                <div id="resultMediaContainer"></div>
+                
+                <div id="verdictCard" class="verdict-card">
+                    <h2 id="verdictTitle" style="margin:0">PROCESSING</h2>
+                    <p id="verdictConfidence" style="margin: 0.5rem 0 0 0; font-family: 'Courier New', monospace;"></p>
+                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid currentColor;">
+                        <strong style="text-transform: uppercase; letter-spacing: 1px;">Analysis Overview</strong>
+                        <p id="verdictOverview" style="margin-top: 0.5rem; line-height: 1.5;"></p>
+                    </div>
+                    <button onclick="scrollToMetrics()" class="scroll-btn">↓ DETAILED METRICS</button>
+                </div>
+            </div>
+            
+            <div id="metricsSection" class="metrics-section">
+                <h3>Detailed Metrics</h3>
+                <div id="metricsGrid" class="metrics-grid">
+                    <!-- Metrics will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
 </html>

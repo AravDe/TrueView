@@ -101,7 +101,7 @@ export default function Upload() {
       {/* === Footer === */}
       <p className="mt-4 text-gray-400 text-sm">Supported Files: png, jpg, jpeg, webp, mp4, mov, mkv</p>
 
-      <p className="mt-20 text-gray-400 text-sm">© 2025 TrueView — Built For Hack Harvard 2025</p>
+      <p className="mt-20 text-gray-400 text-sm">© 2025 TrueView</p>
     </div>
   );
 }

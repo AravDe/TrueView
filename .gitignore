@@ -4,3 +4,5 @@ venv/
 frontend/node_modules
 backend/package-lock.json
 backend/__pycache__
+/media
+

@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-import os
+import os, time
 
 
 class MediaAnalyzer:
@@ -150,31 +150,31 @@ class MediaAnalyzer:
             results = {
                 'metadata': self.metadata,
                 'metrics': {
-                    'avg_motion': np.mean(self.motion_scores) if self.motion_scores else 0,
-                    'avg_edge_consistency': np.mean(self.edge_consistency) if self.edge_consistency else 0,
-                    'avg_texture_variance': np.mean(self.texture_variances) if self.texture_variances else 0,
-                    'motion_std': np.std(self.motion_scores) if self.motion_scores else 0,
-                    'edge_std': np.std(self.edge_consistency) if self.edge_consistency else 0,
-                    'texture_std': np.std(self.texture_variances) if self.texture_variances else 0,
+                    'avg_motion': float(np.mean(self.motion_scores)) if self.motion_scores else 0.0,
+                    'avg_edge_consistency': float(np.mean(self.edge_consistency)) if self.edge_consistency else 0.0,
+                    'avg_texture_variance': float(np.mean(self.texture_variances)) if self.texture_variances else 0.0,
+                    'motion_std': float(np.std(self.motion_scores)) if self.motion_scores else 0.0,
+                    'edge_std': float(np.std(self.edge_consistency)) if self.edge_consistency else 0.0,
+                    'texture_std': float(np.std(self.texture_variances)) if self.texture_variances else 0.0,
                 },
                 'raw_data': {
-                    'motion_scores': self.motion_scores,
-                    'edge_consistency': self.edge_consistency,
-                    'texture_variances': self.texture_variances,
+                    'motion_scores': [float(x) for x in self.motion_scores],
+                    'edge_consistency': [float(x) for x in self.edge_consistency],
+                    'texture_variances': [float(x) for x in self.texture_variances],
                 }
             }
         else:
             results = {
                 'metadata': self.metadata,
                 'metrics': {
-                    'avg_texture_variance': np.mean(self.texture_variances) if self.texture_variances else 0,
-                    'texture_std': np.std(self.texture_variances) if self.texture_variances else 0,
-                    'edge_density': self.edge_density,
-                    'color_variance': self.color_variance,
-                    'edge_continuity': self.edge_continuity
+                    'avg_texture_variance': float(np.mean(self.texture_variances)) if self.texture_variances else 0.0,
+                    'texture_std': float(np.std(self.texture_variances)) if self.texture_variances else 0.0,
+                    'edge_density': float(self.edge_density),
+                    'color_variance': float(self.color_variance),
+                    'edge_continuity': float(self.edge_continuity)
                 },
                 'raw_data': {
-                    'texture_variances': self.texture_variances,
+                    'texture_variances': [float(x) for x in self.texture_variances],
                 }
             }
         
@@ -182,7 +182,11 @@ class MediaAnalyzer:
 
 if __name__ == "__main__":
     analyzer = MediaAnalyzer()
-    result = analyzer.analyze_image('../media/ai_cow.png')
+    start_time = time.time()
+    #result = analyzer.analyze_image('../media/ai_cow.png')
     result1 = analyzer.analyze_video('../media/lion_ai_video.mp4')
-    print(result)
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Test completed in {elapsed_time:.2f} seconds.")
+    #print(result)
     print(result1)

@@ -1,11 +1,13 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from detector import scan_image, scan_video
-from attrClassifier import MediaAnalyzer
 from explainability import ExplainabilityEngine
+from file_validation_service import detect_file_type, get_results
+from attrClassifier import MediaAnalyzer
 
-import shutil, os, subprocess, mimetypes
+import shutil, os, asyncio, random
+from pydantic import BaseModel
+from typing import Dict, Any
 
 app = FastAPI()
 
@@ -17,7 +19,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-UPLOAD_FOLDER = "../media"
+# Use absolute path relative to this file to ensure consistency regardless of where the server is run
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "media")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 app.mount("/media", StaticFiles(directory=UPLOAD_FOLDER), name="media")
@@ -29,93 +33,62 @@ async def upload_file(file: UploadFile = File(...)):
     file_type = detect_file_type(file.filename)
     if file_type == "unknown":
         raise HTTPException(status_code=400, detail="Unsupported file type")
-
+    
     with open(filepath, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     print(f"File saved to: {filepath}")
 
-    ai_scan_result, analysis_result = get_results(filepath)
-
-    if isinstance(ai_scan_result, ValueError):
-        raise HTTPException(status_code=400, detail=str(ai_scan_result))
-    
-    print(ai_scan_result)
-    ai_detected = ai_scan_result["ai_detected"]
-    ai_confidence = ai_scan_result["ai_confidence"]
-    is_deepfake = ai_scan_result["deepfake_detected"]
-    deepfake_confidence = ai_scan_result["deepfake_confidence"]
-
-    explainer = ExplainabilityEngine()
-    brief_overview = explainer.explain_overall_analysis(analysis_result)
-
-    print(brief_overview)
-
-    # Generate metric-specific explanations
-    metric_explanations = []
-    metrics = analysis_result['metrics']
-    
-    for metric_name in metrics.keys():
-        metric_data = explainer.explain_individual_metric(analysis_result, metric_name)
-        metric_explanations.append(metric_data)
-
-    ai_detected = ai_scan_result["ai_detected"]
-    ai_confidence = ai_scan_result["ai_confidence"]
-    is_deepfake = ai_scan_result["deepfake_detected"]
-    deepfake_confidence = ai_scan_result["deepfake_confidence"]
+    loop = asyncio.get_running_loop()
+    try:
+        # ai_scan_result, analysis_result = await loop.run_in_executor(None, get_results, filepath)
+        
+        # Using local analyzer and random verdict to save credits
+        analyzer = MediaAnalyzer()
+        if "video" in file_type.lower():
+            analysis_result = await loop.run_in_executor(None, analyzer.analyze_video, filepath)
+        else:
+            analysis_result = await loop.run_in_executor(None, analyzer.analyze_image, filepath)
+            
+        is_fake = random.choice([True, False])
+        ai_scan_result = {
+            "ai_detected": is_fake,
+            "deepfake_detected": is_fake,
+            "ai_confidence": random.uniform(0.8, 0.99) if is_fake else random.uniform(0.01, 0.2),
+            "deepfake_confidence": random.uniform(0.8, 0.99) if is_fake else random.uniform(0.01, 0.2)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
     explainer = ExplainabilityEngine()
-    brief_overview = explainer.explain_overall_analysis(analysis_result)
-
-    print(brief_overview)
-
-    # Generate metric-specific explanations
-    metric_explanations = []
-    metrics = analysis_result['metrics']
+    brief_overview = await explainer.explain_overall_analysis(analysis_result, ai_scan_result)
     
-    for metric_name in metrics.keys():
-        metric_data = explainer.explain_individual_metric(analysis_result, metric_name)
-        metric_explanations.append(metric_data)
-
     return {
         "status": "success",
         "filename": file.filename,
         "path": f"/media/{file.filename}",
         "size": os.path.getsize(filepath),
         "type": file_type,
-        "ai_detected": ai_detected,
-        "ai_confidence": ai_confidence,
-        "is_deepfake": is_deepfake,
-        "deepfake_confidence": deepfake_confidence,
         "ai_scan_result": ai_scan_result,
-        "analysis_result": analysis_result,
-        "briefOverview": brief_overview,
-        "metricExplanations": metric_explanations,
+        "analysis_result": analysis_result, # Frontend sends this back to /analyze/metrics
+        "brief_overview": brief_overview
     }
 
+class MetricRequest(BaseModel):
+    analysis_result: Dict[str, Any]
 
-def get_results(file_path):
-    file_type = detect_file_type(file_path)
+@app.post("/analyze/metrics")
+async def analyze_metrics(request: MetricRequest):
+    """
+    Step 2: Takes the analysis result from Step 1 and generates detailed metric explanations in parallel.
+    """
+    explainer = ExplainabilityEngine()
+    metrics = request.analysis_result.get('metrics', {})
+    
+    # Run all metric explanations in parallel
+    tasks = [explainer.explain_individual_metric(request.analysis_result, metric_name) for metric_name in metrics.keys()]
+    metric_explanations = await asyncio.gather(*tasks)
 
-    if file_type == "unknown":
-        return ValueError("Unsupported file type")
-
-    ai_scan_result = None
-    analyzer = MediaAnalyzer()
-    if file_type == "image":
-        ai_scan_result = scan_image(file_path)
-        analysis_result = analyzer.analyze_image(file_path)
-    elif file_type == "video":
-        ai_scan_result = scan_video(file_path)
-        analysis_result = analyzer.analyze_video(file_path)
-
-    return ai_scan_result, analysis_result
-
-def detect_file_type(path):
-    mime_type, _ = mimetypes.guess_type(path)
-    if mime_type:
-        if mime_type.startswith("image"):
-            return "image"
-        elif mime_type.startswith("video"):
-            return "video"
-    return "unknown"
+    return {
+        "metricExplanations": metric_explanations,
+    }

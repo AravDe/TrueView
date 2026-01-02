@@ -1,77 +1,77 @@
 import os
-import google.generativeai as genai
+# import google.generativeai as genai
+from openai import AsyncOpenAI
+
 from typing import Dict, Any
 
 class ExplainabilityEngine:
     
-    def __init__(self, api_key: str = None):
+    def __init__(self, local_model: str = os.getenv("OLLAMA_MODEL", "llama3.1:8b"), local_url: str = "http://localhost:11434/v1"):
         """
-        Initialize the ExplainabilityEngine.
+        Initialize the ExplainabilityEngine to use a local LLM.
         
         Args:
-            api_key (str, optional): Gemini API key. If not provided, reads from GEMINI_API_KEY env variable.
+            local_model (str): Name of the local model to use (e.g., 'llama3.1:8b').
+            local_url (str): URL of the local inference server.
         """
-        self.api_key = api_key or os.getenv('GEMINI_API_KEY')
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-flash-latest')
+        # self.api_key = api_key or os.getenv('GEMINI_API_KEY')
+        # if self.api_key:
+        #     genai.configure(api_key=self.api_key)
+        #     self.model = genai.GenerativeModel('gemini-flash-latest')
+
+        self.local_model = local_model
+
+        self.client = AsyncOpenAI(
+            base_url=local_url,
+            api_key="not-needed" # Local servers usually don't enforce API keys
+        )
+
+    async def _generate_content(self, prompt: str) -> str:
+        """Helper to generate content from the configured local LLM."""
+        response = await self.client.chat.completions.create(
+            model=self.local_model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
+        )
+        return response.choices[0].message.content
     
-    def explain_overall_analysis(self, results: Dict[str, Any]) -> str:
+    async def explain_overall_analysis(self, OCV_results: Dict[str, Any], API_results: Dict[str, Any])-> str:
         """
         Provides a comprehensive natural language explanation of the entire analysis,
         focusing on the overall reasoning and conclusion.
         
         Args:
-            results (dict): Analysis results from MediaAnalyzer containing metadata, metrics, and raw_data
+            OCV_results (dict): Analysis results from MediaAnalyzer containing metadata, metrics, and raw_data
+            API_results (dict): Analysis results containing 'ai_detected' and 'ai_confidence'
             
         Returns:
             str: Natural language explanation of the overall analysis
         """
-        media_type = results['metadata']['type']
-        metrics = results['metrics']
-        metadata = results['metadata']
+        media_type = OCV_results['metadata']['type']
+        metrics = OCV_results['metrics']
+        metadata = OCV_results['metadata']
+        verdict = API_results['ai_detected']
+        confidence = API_results['ai_confidence']
+        
         
         if media_type == 'video':
-            prompt = self._build_video_overall_prompt(metadata, metrics)
+            prompt = await self._build_video_overall_prompt(metadata, metrics, verdict= verdict, confidence= confidence)
         else:
-            prompt = self._build_image_overall_prompt(metadata, metrics)
+            prompt = await self._build_image_overall_prompt(metadata, metrics, verdict=verdict, confidence=confidence)
         
         try:
-            response = self.model.generate_content(prompt)
-            return response.text
+            # response = self.model.generate_content(prompt)
+            # return response.text
+            return await self._generate_content(prompt)
         except Exception as e:
             return f"Error generating explanation: {str(e)}"
     
-    def explain_specific_metrics(self, results: Dict[str, Any]) -> str:
-        """
-        Provides a short, metric-concentrated feedback focusing on specific
-        numerical values and what they indicate.
-        
-        Args:
-            results (dict): Analysis results from MediaAnalyzer containing metadata, metrics, and raw_data
-            
-        Returns:
-            str: Concise metric-focused explanation
-        """
-        media_type = results['metadata']['type']
-        metrics = results['metrics']
-        
-        if media_type == 'video':
-            prompt = self._build_video_metrics_prompt(metrics)
-        else:
-            prompt = self._build_image_metrics_prompt(metrics)
-        
-        try:
-            response = self.model.generate_content(prompt)
-            return response.text
-        except Exception as e:
-            return f"Error generating metric explanation: {str(e)}"
-    
-    def explain_individual_metric(self, results: Dict[str, Any], metric_name: str) -> Dict[str, Any]:
+    async def explain_individual_metric(self, OCV_results: Dict[str, Any], metric_name: str) -> Dict[str, Any]:
         """
         Provides analysis for a single specific metric.
         
         Args:
-            results (dict): Analysis results from MediaAnalyzer containing metadata, metrics, and raw_data
+            OCV_results (dict): Analysis results from MediaAnalyzer containing metadata, metrics, and raw_data
             metric_name (str): Name of the metric to analyze (e.g., 'avg_motion', 'edge_density')
             
         Returns:
@@ -84,16 +84,21 @@ class ExplainabilityEngine:
                 'status': str  # 'normal', 'suspicious_low', 'suspicious_high'
             }
         """
-        media_type = results['metadata']['type']
-        metrics = results['metrics']
+        media_type = OCV_results['metadata']['type']
+        metrics = OCV_results['metrics']
         
         if media_type == 'video':
-            return self._analyze_video_metric(metrics, metric_name)
+            return await self._analyze_video_metric(metrics, metric_name)
         else:
-            return self._analyze_image_metric(metrics, metric_name)
+            return await self._analyze_image_metric(metrics, metric_name)
+        
+
+
     
-    def _build_video_overall_prompt(self, metadata: Dict[str, Any], metrics: Dict[str, Any]) -> str:
-        prompt = f"""You are an AI deepfake detection expert explaining analysis results to a non-technical user.
+    async def _build_video_overall_prompt(self, metadata: Dict[str, Any], metrics: Dict[str, Any], verdict, confidence) -> str:
+        prompt = f"""You are an AI deepfake detection expert explaining analysis results to a non-technical user. You are not to form your own conclusions, but use the
+        metrics provided to support the expert opinion given by the verdict and the confidence level. You are to explain why some metric is high or low with reference to 
+        these verdicts and confidence.
 
 **Context:** A video file has been analyzed for signs of AI generation or manipulation.
 
@@ -109,6 +114,10 @@ class ExplainabilityEngine:
 - Average Edge Consistency: {metrics['avg_edge_consistency']:.2f} (std: {metrics['edge_std']:.2f})
 - Average Texture Variance: {metrics['avg_texture_variance']:.2f} (std: {metrics['texture_std']:.2f})
 
+**Verdict and Confidence**
+- Verdict: {verdict}
+- Confidence: {confidence:.2f}
+
 | **Metric**                    | **Description**                                                                                                       |                             **Reference Range (Authentic Video)**                            |                                             **Suspicious Range (Possible AI / Interpolated)**                                             
 | :---------------------------- | :-------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------: 
 | **Average Motion**            | Measures overall pixel intensity change between consecutive frames. Reflects how much movement occurs frame to frame. |       **10 – 50** → Real footage has natural hand motion, jitter, or parallax changes.       | **< 10** → Overly smooth, AI-interpolated or generated video. **> 50** → Possible frame drops, stuttering, or synthetic motion artifacts.
@@ -117,20 +126,27 @@ class ExplainabilityEngine:
 | **Texture Variance**          | Measures overall frame-to-frame variation in fine detail (e.g., fur, grass, reflections).                             | **100 – 10,000** → Real videos have high diversity depending on surface detail and lighting. |       **< 100** → Overly clean, uniform surfaces (AI diffusion). **> 10,000** → Possibly noise injection or low-quality compression.     
 
 
-**Task:** Provide a comprehensive, easy-to-understand explanation of whether this video appears authentic or AI-generated. 
+**Task:** Provide a concise, easy-to-understand explanation of whether this video appears authentic or AI-generated. 
 Focus on:
 1. Overall conclusion (likely authentic or AI-generated)
 2. Main reasoning behind the conclusion
 3. Which patterns are most significant
 4. Confidence level in the assessment
 
-Make it into short bullet points, maximum bullet points = 5. ABSOLUTELY NO FORMATTING ANYWHERE"""
+Make it into a short paragraph mentioning only the most significant signs according to the metrics with ABSOLUTELY NO FORMATTING ANYWHERE. The paragraph should be about 5-6 lines at best"""
 
         return prompt
     
-    def _build_image_overall_prompt(self, metadata: Dict[str, Any], metrics: Dict[str, Any]) -> str:
+
+
+
+
+    
+    async def _build_image_overall_prompt(self, metadata: Dict[str, Any], metrics: Dict[str, Any], verdict, confidence) -> str:
         """Build prompt for overall image analysis explanation."""
-        prompt = f"""You are an AI deepfake detection expert explaining analysis results to a non-technical user.
+        prompt = f"""You are an AI deepfake detection expert explaining analysis results to a non-technical user. You are not to form your own conclusions, but use the
+        metrics provided to support the expert opinion given by the verdict and the confidence level. You are to explain why some metric is high or low with reference to 
+        these verdicts and confidence.
 
 **Context:** An image file has been analyzed for signs of AI generation.
 
@@ -142,6 +158,10 @@ Make it into short bullet points, maximum bullet points = 5. ABSOLUTELY NO FORMA
 - Edge Density: {metrics['edge_density']:.4f}
 - Color Variance: {metrics['color_variance']:.2f}
 - Edge Continuity: {metrics['edge_continuity']:.2f}
+
+**Verdict and Confidence**
+- Verdict: {verdict}
+- Confidence: {confidence:.2f}
 
 | **Metric**           | **Description**                                                                               | **Typical Range (Authentic Frame)** |                    **Suspicious Range (AI/Generated)**                    
 | :------------------- | :-------------------------------------------------------------------------------------------- | :---------------------------------: | :----------------------------------------------------------------------: 
@@ -157,12 +177,17 @@ Focus on:
 2. Main reasoning behind the conclusion
 3. Which visual characteristics are most telling
 4. Confidence level in the assessment
-
-Make it into short bullet points, maximum bullet points = 5. ABSOLUTELY NO FORMATTING ANYWHERE"""
+Do not mention raw metrics just describe the high metrics as features that can be seen on an image with those metric scores
+Make it into a short paragraph mentioning only the most significant signs according to the metrics with ABSOLUTELY NO FORMATTING ANYWHERE. The paragraph should be about 5-6 lines at best"""
 
         return prompt
     
-    def _build_video_metrics_prompt(self, metrics: Dict[str, Any]) -> str:
+
+
+
+
+    
+    async def _build_video_metrics_prompt(self, metrics: Dict[str, Any]) -> str:
         """Build prompt for metric-focused video explanation."""
         prompt = f"""You are an AI deepfake detection expert. Provide a SHORT, metric-focused analysis.
 
@@ -187,7 +212,12 @@ Be concise and technical. Focus on the numbers.ABSOLUTELY NO FORMATTING ANYWHERE
 
         return prompt
     
-    def _build_image_metrics_prompt(self, metrics: Dict[str, Any]) -> str:
+
+
+
+
+
+    async def _build_image_metrics_prompt(self, metrics: Dict[str, Any]) -> str:
         """Build prompt for metric-focused image explanation."""
         prompt = f"""You are an AI deepfake detection expert. Provide a SHORT, metric-focused analysis.
 
@@ -208,11 +238,11 @@ Be concise and technical. Focus on the numbers.ABSOLUTELY NO FORMATTING ANYWHERE
 - Explain what the deviation means, to someone non technical, make sure you use real world examples to explain terms. (e.g., "low texture variance suggests over-smoothing typical of AI")
 - Highlight the most suspicious metric(s)
 
-Be concise and technical. Focus on the numbers.ABSOLUTELY NO FORMATTING ANYWHERE"""
+Be concise and technical. Focus on the numbers. ABSOLUTELY NO FORMATTING ANYWHERE"""
 
         return prompt
     
-    def _analyze_video_metric(self, metrics: Dict[str, Any], metric_name: str) -> Dict[str, Any]:
+    async def _analyze_video_metric(self, metrics: Dict[str, Any], metric_name: str) -> Dict[str, Any]:
         """Analyze a single video metric and return structured data."""
         
         # Define metric configurations
@@ -294,8 +324,9 @@ Be concise and technical. Focus on the numbers.ABSOLUTELY NO FORMATTING ANYWHERE
 Be concise, conversational and accessible to non-technical users. ABSOLUTELY NO FORMATTING ANYWHERE"""
 
         try:
-            response = self.model.generate_content(prompt)
-            analysis = response.text
+            # response = self.model.generate_content(prompt)
+            # analysis = response.text
+            analysis = await self._generate_content(prompt)
         except Exception as e:
             analysis = f"Error generating analysis: {str(e)}"
         
@@ -309,7 +340,7 @@ Be concise, conversational and accessible to non-technical users. ABSOLUTELY NO 
             'status': status
         }
     
-    def _analyze_image_metric(self, metrics: Dict[str, Any], metric_name: str) -> Dict[str, Any]:
+    async def _analyze_image_metric(self, metrics: Dict[str, Any], metric_name: str) -> Dict[str, Any]:
         """Analyze a single image metric and return structured data."""
         
         # Define metric configurations
@@ -384,8 +415,9 @@ Be concise, conversational and accessible to non-technical users. ABSOLUTELY NO 
 Be concise, conversational and accessible to non-technical users. ABSOLUTELY NO FORMATTING ANYWHERE."""
 
         try:
-            response = self.model.generate_content(prompt)
-            analysis = response.text
+            # response = self.model.generate_content(prompt)
+            # analysis = response.text
+            analysis = await self._generate_content(prompt)
         except Exception as e:
             analysis = f"Error generating analysis: {str(e)}"
         
@@ -398,76 +430,3 @@ Be concise, conversational and accessible to non-technical users. ABSOLUTELY NO 
             'analysis': analysis,
             'status': status
         }
-
-
-if __name__ == "__main__":
-    # Example usage
-    from attrClassifier import MediaAnalyzer
-    from pathlib import Path
-    
-    script_dir = Path(__file__).parent
-    project_root = script_dir.parent
-    video_path = str(project_root / 'media' / 'lion_ai_video.mp4')
-    image_path = str(project_root / 'media' / 'ai_cow.png')
-    
-    analyzer = MediaAnalyzer()
-    video_results = analyzer.analyze_video(video_path)
-    image_results = analyzer.analyze_image(image_path)
-    
-    explainer = ExplainabilityEngine()
-    
-    print("=" * 80)
-    print("VIDEO ANALYSIS - OVERALL EXPLANATION")
-    print("=" * 80)
-    overall_video = explainer.explain_overall_analysis(video_results)
-    print(overall_video)
-    print("\n")
-    
-    print("=" * 80)
-    print("VIDEO ANALYSIS - METRIC-FOCUSED EXPLANATION")
-    print("=" * 80)
-    metrics_video = explainer.explain_specific_metrics(video_results)
-    print(metrics_video)
-    print("\n")
-    
-    print("=" * 80)
-    print("IMAGE ANALYSIS - OVERALL EXPLANATION")
-    print("=" * 80)
-    overall_image = explainer.explain_overall_analysis(image_results)
-    print(overall_image)
-    print("\n")
-    
-    print("=" * 80)
-    print("IMAGE ANALYSIS - METRIC-FOCUSED EXPLANATION")
-    print("=" * 80)
-    metrics_image = explainer.explain_specific_metrics(image_results)
-    print(metrics_image)
-    print("\n")
-    
-    # NEW: Individual metric analysis examples
-    print("=" * 80)
-    print("INDIVIDUAL METRIC ANALYSIS - VIDEO")
-    print("=" * 80)
-    
-    video_metrics_to_analyze = ['avg_motion', 'motion_std', 'avg_edge_consistency', 'avg_texture_variance']
-    for metric in video_metrics_to_analyze:
-        result = explainer.explain_individual_metric(video_results, metric)
-        print(f"\n📊 {result['display_name']}")
-        print(f"   Actual Value: {result['actual_value']:.2f}")
-        print(f"   Expected Range: {result['expected_range']}")
-        print(f"   Status: {result['status'].upper()}")
-        print(f"   Analysis: {result['analysis']}")
-    
-    print("\n")
-    print("=" * 80)
-    print("INDIVIDUAL METRIC ANALYSIS - IMAGE")
-    print("=" * 80)
-    
-    image_metrics_to_analyze = ['avg_texture_variance', 'edge_density', 'color_variance', 'edge_continuity']
-    for metric in image_metrics_to_analyze:
-        result = explainer.explain_individual_metric(image_results, metric)
-        print(f"\n📊 {result['display_name']}")
-        print(f"   Actual Value: {result['actual_value']:.4f}")
-        print(f"   Expected Range: {result['expected_range']}")
-        print(f"   Status: {result['status'].upper()}")
-        print(f"   Analysis: {result['analysis']}")
