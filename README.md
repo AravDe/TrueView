@@ -4,17 +4,17 @@ TrueView is a high-performance, local-first deepfake detection tool that combine
 
 ## Recent Updates
 
+### Performance Improvements
+The backend architecture has been refactored for speed and responsiveness: 
+- **Asynchronous Core:** Built on FastAPI with fully async endpoints to handle concurrent requests.
+- **Parallel Processing:** Metric explanations are generated in parallel using `asyncio.gather`, reducing the total analysis time from linear (sum of all parts) to the duration of the single longest task.
+- **Non-Blocking Execution:** Heavy Computer Vision tasks (`MediaAnalyzer`) are offloaded to thread executors, ensuring the server remains responsive during file uploads.
+
 ### Visual Overhaul
 The frontend has been completely redesigned with a **Neo-Brutalist** aesthetic:
 - **High-Contrast UI:** A strictly black-and-white palette for a clean, professional, and technical look.
 - **Split-View Results:** A responsive layout that places the media preview and verdict side-by-side with detailed metrics.
 - **Interactive Experience:** Features smooth scrolling, hover effects, and dynamic notifications when analysis is complete.
-
-### Performance Improvements
-The backend architecture has been refactored for speed and responsiveness:
-- **Asynchronous Core:** Built on FastAPI with fully async endpoints to handle concurrent requests.
-- **Parallel Processing:** Metric explanations are generated in parallel using `asyncio.gather`, reducing the total analysis time from linear (sum of all parts) to the duration of the single longest task.
-- **Non-Blocking Execution:** Heavy Computer Vision tasks (`MediaAnalyzer`) are offloaded to thread executors, ensuring the server remains responsive during file uploads.
 
 ## 🛠️ Setup & Installation
 
