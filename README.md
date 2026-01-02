@@ -2,7 +2,7 @@
 
 TrueView is a high-performance, local-first deepfake detection tool that combines Computer Vision metrics with LLM-based explainability to provide transparent verdicts on media authenticity.
 
-## 🚀 Recent Updates
+## Recent Updates
 
 ### Visual Overhaul
 The frontend has been completely redesigned with a **Neo-Brutalist** aesthetic:
