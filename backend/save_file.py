@@ -83,11 +83,7 @@ async def analyze_metrics(request: MetricRequest):
     Step 2: Takes the analysis result from Step 1 and generates detailed metric explanations in parallel.
     """
     explainer = ExplainabilityEngine()
-    metrics = request.analysis_result.get('metrics', {})
-    
-    # Run all metric explanations in parallel
-    tasks = [explainer.explain_individual_metric(request.analysis_result, metric_name) for metric_name in metrics.keys()]
-    metric_explanations = await asyncio.gather(*tasks)
+    metric_explanations = await explainer.analyze_all_metrics(request.analysis_result)
 
     return {
         "metricExplanations": metric_explanations,
