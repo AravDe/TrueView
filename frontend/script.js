@@ -39,6 +39,9 @@ async function handleAnalysis() {
     const resultMediaContainer = document.getElementById('resultMediaContainer');
     const headerBtn = document.getElementById('headerNewAnalysisBtn');
 
+    // Show global loader
+    if (window.showLoader) window.showLoader();
+
     // Reset UI
     btn.disabled = true;
     btn.textContent = 'Uploading & Scanning...';
@@ -60,6 +63,9 @@ async function handleAnalysis() {
 
         if (!uploadResp.ok) throw new Error('Upload failed');
         const initialData = await uploadResp.json();
+
+        // Hide global loader once initial processing is done
+        if (window.hideLoader) window.hideLoader();
 
         // Switch Views
         uploadSection.style.display = 'none';
@@ -106,7 +112,7 @@ async function handleAnalysis() {
                     <div class="spinner"></div>
                     <h3>${key.replace(/_/g, ' ')}</h3>
                 </div>
-                <p style="font-size: 0.8rem; text-transform: uppercase;">Scanning...</p>
+                <p style="font-size: 0.8rem; text-transform: uppercase;">Loading...</p>
             `;
             metricsGrid.appendChild(card);
         });
@@ -118,6 +124,7 @@ async function handleAnalysis() {
         alert('Error: ' + error.message);
         btn.disabled = false;
         btn.textContent = 'Analyze Media';
+        if (window.hideLoader) window.hideLoader();
     }
 }
 

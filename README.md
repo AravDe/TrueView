@@ -2,6 +2,23 @@
 
 TrueView is a high-performance, local-first deepfake detection tool that combines Computer Vision metrics with LLM-based explainability to provide transparent verdicts on media authenticity.
 
+While the primary verdict is sourced from the **AI or NOT API**, TrueView's main goal is **education**. By bridging the gap between technical forensic metrics and human-readable explanations, TrueView empowers users to understand not just *if* an image or video is fake, but *why*, teaching them to identify AI artifacts themselves through detailed metric analysis.
+
+## Project Overview
+
+In an era of increasingly sophisticated generative AI, traditional detection methods often fall short or lack transparency. TrueView addresses this by employing a hybrid approach:
+
+1.  **Verdict Retrieval**: Uses the **AI or NOT API** to provide an initial high-confidence classification.
+2.  **Computer Vision Analysis**: Extracts raw forensic data such as edge consistency, texture variance, and motion artifacts using OpenCV.
+3.  **LLM Interpretation**: Utilizes a local Large Language Model (via Ollama) to analyze these metrics and generate context-aware explanations.
+4.  **Privacy-Centric Design**: All processing happens locally on your machine, ensuring data privacy and security.
+
+### Key Capabilities
+*   **Deepfake Detection**: Identifies signs of AI generation in both images and videos.
+*   **Granular Metrics**: Analyzes specific artifacts like "unnatural skin smoothing" or "flickering edges".
+*   **Natural Language Reports**: Converts complex numerical data into easy-to-understand summaries.
+
+
 ## Recent Updates
 
 ### Performance Improvements
