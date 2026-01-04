@@ -5,7 +5,7 @@ from explainability import ExplainabilityEngine
 from file_validation_service import detect_file_type, get_results
 from attrClassifier import MediaAnalyzer
 
-import shutil, os, asyncio, random
+import shutil, os, asyncio, random, time
 from pydantic import BaseModel
 from typing import Dict, Any
 
@@ -28,6 +28,7 @@ app.mount("/media", StaticFiles(directory=UPLOAD_FOLDER), name="media")
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
+    start_total = time.time()
     filepath = os.path.join(UPLOAD_FOLDER, file.filename)
 
     file_type = detect_file_type(file.filename)
@@ -37,9 +38,10 @@ async def upload_file(file: UploadFile = File(...)):
     with open(filepath, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    print(f"File saved to: {filepath}")
+    print(f"File saved to: {filepath} ({time.time() - start_total:.4f}s)")
 
     loop = asyncio.get_running_loop()
+    t_analysis_start = time.time()
     try:
         # ai_scan_result, analysis_result = await loop.run_in_executor(None, get_results, filepath)
         
@@ -60,9 +62,13 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+    print(f"CV Analysis & Classification: {time.time() - t_analysis_start:.4f}s")
+
+    t_llm_start = time.time()
     explainer = ExplainabilityEngine()
     brief_overview = await explainer.explain_overall_analysis(analysis_result, ai_scan_result)
-    
+    print(f"LLM Overall Explanation: {time.time() - t_llm_start:.4f}s")
+    print(f"Total Upload Handler Time: {time.time() - start_total:.4f}s")
     return {
         "status": "success",
         "filename": file.filename,
@@ -82,8 +88,11 @@ async def analyze_metrics(request: MetricRequest):
     """
     Step 2: Takes the analysis result from Step 1 and generates detailed metric explanations in parallel.
     """
+    start_time = time.time()
     explainer = ExplainabilityEngine()
     metric_explanations = await explainer.analyze_all_metrics(request.analysis_result)
+    
+    print(f"Detailed Metrics Analysis (Parallel): {time.time() - start_time:.4f}s")
 
     return {
         "metricExplanations": metric_explanations,

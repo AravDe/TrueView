@@ -24,11 +24,13 @@ class ExplainabilityEngine:
 
     async def _generate_content(self, prompt: str) -> str:
         """Helper to generate content from the configured local LLM."""
+        t0 = time.time()
         response = await self.client.chat.completions.create(
             model=self.local_model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
+        print(f"LLM Gen ({len(prompt)} chars): {time.time() - t0:.4f}s")
         return response.choices[0].message.content
     
     async def explain_overall_analysis(self, OCV_results: Dict[str, Any], API_results: Dict[str, Any])-> str:
@@ -46,8 +48,10 @@ class ExplainabilityEngine:
         media_type = OCV_results['metadata']['type']
         metrics = OCV_results['metrics']
         metadata = OCV_results['metadata']
-        verdict = API_results['ai_detected']
-        confidence = API_results['ai_confidence']
+        
+        verdict_bool = API_results.get('ai_detected') or API_results.get('deepfake_detected')
+        verdict = "AI-Generated" if verdict_bool else "Authentic"
+        confidence = max(API_results.get('ai_confidence', 0), API_results.get('deepfake_confidence', 0))
         
         
         if media_type == 'video':

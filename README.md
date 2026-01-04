@@ -18,7 +18,6 @@ In an era of increasingly sophisticated generative AI, traditional detection met
 *   **Granular Metrics**: Analyzes specific artifacts like "unnatural skin smoothing" or "flickering edges".
 *   **Natural Language Reports**: Converts complex numerical data into easy-to-understand summaries.
 
-
 ## Recent Updates
 
 ### Performance Improvements
@@ -27,11 +26,10 @@ The backend architecture has been refactored for speed and responsiveness:
 - **Parallel Processing:** Metric explanations are generated in parallel using `asyncio.gather`, reducing the total analysis time from linear (sum of all parts) to the duration of the single longest task.
 - **Non-Blocking Execution:** Heavy Computer Vision tasks (`MediaAnalyzer`) are offloaded to thread executors, ensuring the server remains responsive during file uploads.
 
-### Visual Overhaul
-The frontend has been completely redesigned with a **Neo-Brutalist** aesthetic:
-- **High-Contrast UI:** A strictly black-and-white palette for a clean, professional, and technical look.
-- **Split-View Results:** A responsive layout that places the media preview and verdict side-by-side with detailed metrics.
-- **Interactive Experience:** Features smooth scrolling, hover effects, and dynamic notifications when analysis is complete.
+
+![Landing Page](test_images/UI_Landing_Page.png)
+![Overall Analysis](test_images/UI_overall_analysis.png)
+![Detailed Analysis](test_images/UI_detailed_analysis.png)
 
 ## 🛠️ Setup & Installation
 
@@ -64,20 +62,19 @@ The frontend has been completely redesigned with a **Neo-Brutalist** aesthetic:
 
 ## 🧪 Test Images
 
-Use these samples to test the detection capabilities:
 
 ### Real Media
-<!-- Add path to a real image below -->
-!Real Sample
+
+![Real Sample](test_images/scenary.jpg)
 *Description: Authentic footage with natural noise and consistent lighting.*
 
 ### AI-Generated Media
 <!-- Add path to a deepfake/AI image below -->
-!Fake Sample
+![Fake Media](test_images/ai_cow.png)
 *Description: AI-generated content showing characteristic texture smoothing and edge inconsistencies.*
 
 ## 🏗️ Architecture
-
-- **Frontend:** HTML5, CSS3, Vanilla JavaScript (No frameworks)
 - **Backend:** Python, FastAPI, OpenCV
-- **AI/LLM:** Local LLM integration (Ollama) or OpenAI API for explainability
+- **AI/LLM:** Local LLM integration (Ollama) or Gemini API for explainability
+- **Frontend:** HTML5, CSS3, Vanilla JavaScript (No frameworks)
+
