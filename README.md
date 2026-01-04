@@ -1,8 +1,10 @@
 # TrueView Deepfake Detector
 
-TrueView is a high-performance, local-first deepfake detection tool that combines Computer Vision metrics with LLM-based explainability to provide transparent verdicts on media authenticity.
+TrueView is a high-performance, deepfake detection tool that combines Computer Vision metrics with LLM-based explainability to provide transparent verdicts on media authenticity.
 
 While the primary verdict is sourced from the **AI or NOT API**, TrueView's main goal is **education**. By bridging the gap between technical forensic metrics and human-readable explanations, TrueView empowers users to understand not just *if* an image or video is fake, but *why*, teaching them to identify AI artifacts themselves through detailed metric analysis.
+
+### System Design for the project : [Whiteboard Design](https://miro.com/app/board/uXjVJ_YfxHM=/?share_link_id=273812755751)
 
 ## Project Overview
 
@@ -18,10 +20,18 @@ In an era of increasingly sophisticated generative AI, traditional detection met
 *   **Granular Metrics**: Analyzes specific artifacts like "unnatural skin smoothing" or "flickering edges".
 *   **Natural Language Reports**: Converts complex numerical data into easy-to-understand summaries.
 
+### Performance Benchmarks
+
+| Operation | Previous Time | Current Time | Improvement |
+| :--- | :---: | :---: | :---: |
+| **Upload to First Result** | **~13s** | **~5s** |  Instant Feedback |
+| **Detailed Analysis** | ~53s | **~23s** | ~57% Faster |
+
 ## Recent Updates
 
 ### Performance Improvements
-The backend architecture has been refactored for speed and responsiveness: 
+The backend architecture has been refactored for speed and responsiveness:
+ 
 - **Asynchronous Core:** Built on FastAPI with fully async endpoints to handle concurrent requests.
 - **Parallel Processing:** Metric explanations are generated in parallel using `asyncio.gather`, reducing the total analysis time from linear (sum of all parts) to the duration of the single longest task.
 - **Non-Blocking Execution:** Heavy Computer Vision tasks (`MediaAnalyzer`) are offloaded to thread executors, ensuring the server remains responsive during file uploads.
@@ -77,4 +87,3 @@ The backend architecture has been refactored for speed and responsiveness:
 - **Backend:** Python, FastAPI, OpenCV
 - **AI/LLM:** Local LLM integration (Ollama) or Gemini API for explainability
 - **Frontend:** HTML5, CSS3, Vanilla JavaScript (No frameworks)
-
