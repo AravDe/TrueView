@@ -24,7 +24,7 @@ In an era of increasingly sophisticated generative AI, traditional detection met
 
 | Operation | Previous Time | Current Time | Improvement |
 | :--- | :---: | :---: | :---: |
-| **Upload to First Result** | **~13s** | **~5s** |  Instant Feedback |
+| **Upload to First Result** | **~13s** | **~5s** |  ~61% Faster|
 | **Detailed Analysis** | ~53s | **~23s** | ~57% Faster |
 
 ## Recent Updates
