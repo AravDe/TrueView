@@ -1,10 +1,11 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from explainability import ExplainabilityEngine
-from file_validation_service import detect_file_type, get_results
-from attrClassifier import MediaAnalyzer
+from backend.explainability import ExplainabilityEngine
+from backend.file_validation_service import detect_file_type, get_results
+from backend.attrClassifier import MediaAnalyzer
 
+    
 import shutil, os, asyncio, random, time
 from pydantic import BaseModel
 from typing import Dict, Any
@@ -19,7 +20,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Use absolute path relative to this file to ensure consistency regardless of where the server is run
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "media")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)

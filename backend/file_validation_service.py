@@ -1,6 +1,6 @@
 import mimetypes
-from detector import scan_image, scan_video
-from attrClassifier import MediaAnalyzer
+from backend.detector import scan_image, scan_video
+from backend.attrClassifier import MediaAnalyzer
 
 def detect_file_type(path):
     mime_type, _ = mimetypes.guess_type(path)

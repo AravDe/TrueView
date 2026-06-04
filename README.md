@@ -66,7 +66,7 @@ The backend architecture has been refactored for speed and responsiveness:
 4. **Run the Frontend**
    ```bash
    cd frontend
-   python -m http.server 8080
+   npm run dev
    # Open http://localhost:8080 in your browser
    ```
 

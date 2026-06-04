@@ -1,6 +1,6 @@
 import os, time, asyncio
 from openai import AsyncOpenAI
-from prompt_builder import build_video_overall_prompt, build_image_overall_prompt, build_single_metric_prompt
+from backend.prompt_builder import build_video_overall_prompt, build_image_overall_prompt, build_single_metric_prompt
 
 from typing import Dict, Any
 
@@ -30,7 +30,7 @@ class ExplainabilityEngine:
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
         )
-        print(f"LLM Gen ({len(prompt)} chars): {time.time() - t0:.4f}s")
+        print(f"`LLM` Gen ({len(prompt)} chars): {time.time() - t0:.4f}s")
         return response.choices[0].message.content
     
     async def explain_overall_analysis(self, OCV_results: Dict[str, Any], API_results: Dict[str, Any])-> str:
